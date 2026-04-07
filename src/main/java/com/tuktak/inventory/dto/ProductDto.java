@@ -31,13 +31,10 @@ public class ProductDto {
     private BigDecimal price;
 
     private Long categoryId;
-
     private String categoryName;
-
     private boolean active;
-
     private boolean featured;
-
     private Integer stockQuantity;
     private String imageUrl;
+    private Integer discountPercent;  // ✅ added
 }

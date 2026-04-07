@@ -54,6 +54,10 @@ public class Product extends BaseEntity {
 
     @Column(nullable = false)
     private boolean featured = false;
+
     @Column(name = "image_url")
     private String imageUrl;
+
+    @Column(name = "discount_percent")
+    private Integer discountPercent = 0;  // ✅ added
 }

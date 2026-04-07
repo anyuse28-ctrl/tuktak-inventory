@@ -54,86 +54,62 @@ public class ProductService {
         return mapToDto(savedProduct);
     }
 
-    // Pagination methods
     @Transactional(readOnly = true)
     public PageResponse<ProductDto> getAllProducts(int page, int size, String sortBy, String sortDir) {
-        Sort sort = sortDir.equalsIgnoreCase("desc") 
-                ? Sort.by(sortBy).descending() 
-                : Sort.by(sortBy).ascending();
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        
         Page<Product> productPage = productRepository.findAll(pageable);
         return toPageResponse(productPage);
     }
 
     @Transactional(readOnly = true)
     public PageResponse<ProductDto> getActiveProducts(int page, int size, String sortBy, String sortDir) {
-        Sort sort = sortDir.equalsIgnoreCase("desc") 
-                ? Sort.by(sortBy).descending() 
-                : Sort.by(sortBy).ascending();
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        
         Page<Product> productPage = productRepository.findByActiveTrue(pageable);
         return toPageResponse(productPage);
     }
 
     @Transactional(readOnly = true)
     public PageResponse<ProductDto> getProductsByCategory(Long categoryId, int page, int size, String sortBy, String sortDir) {
-        Sort sort = sortDir.equalsIgnoreCase("desc") 
-                ? Sort.by(sortBy).descending() 
-                : Sort.by(sortBy).ascending();
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        
         Page<Product> productPage = productRepository.findByCategoryIdAndActiveTrue(categoryId, pageable);
         return toPageResponse(productPage);
     }
 
     @Transactional(readOnly = true)
     public PageResponse<ProductDto> getProductsByCategoryName(String categoryName, int page, int size, String sortBy, String sortDir) {
-        Sort sort = sortDir.equalsIgnoreCase("desc") 
-                ? Sort.by(sortBy).descending() 
-                : Sort.by(sortBy).ascending();
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        
         Page<Product> productPage = productRepository.findActiveByCategoryName(categoryName, pageable);
         return toPageResponse(productPage);
     }
 
     @Transactional(readOnly = true)
     public PageResponse<ProductDto> getFeaturedProducts(int page, int size, String sortBy, String sortDir) {
-        Sort sort = sortDir.equalsIgnoreCase("desc") 
-                ? Sort.by(sortBy).descending() 
-                : Sort.by(sortBy).ascending();
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        
         Page<Product> productPage = productRepository.findFeaturedProducts(pageable);
         return toPageResponse(productPage);
     }
 
     @Transactional(readOnly = true)
     public PageResponse<ProductDto> searchProducts(String keyword, int page, int size, String sortBy, String sortDir) {
-        Sort sort = sortDir.equalsIgnoreCase("desc") 
-                ? Sort.by(sortBy).descending() 
-                : Sort.by(sortBy).ascending();
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        
         Page<Product> productPage = productRepository.searchProducts(keyword, pageable);
         return toPageResponse(productPage);
     }
 
-    // Non-paginated methods (for backward compatibility)
     @Transactional(readOnly = true)
     public List<ProductDto> getAllProducts() {
-        return productRepository.findAll().stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        return productRepository.findAll().stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<ProductDto> getActiveProducts() {
-        return productRepository.findByActiveTrue().stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        return productRepository.findByActiveTrue().stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -162,30 +138,22 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public List<ProductDto> getProductsByCategory(Long categoryId) {
-        return productRepository.findByCategoryId(categoryId).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        return productRepository.findByCategoryId(categoryId).stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<ProductDto> getActiveProductsByCategoryName(String categoryName) {
-        return productRepository.findActiveByCategoryName(categoryName).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        return productRepository.findActiveByCategoryName(categoryName).stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<ProductDto> getFeaturedProducts() {
-        return productRepository.findByFeaturedTrueAndActiveTrue().stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        return productRepository.findByFeaturedTrueAndActiveTrue().stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<ProductDto> searchProducts(String name) {
-        return productRepository.findByNameContainingIgnoreCase(name).stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+        return productRepository.findByNameContainingIgnoreCase(name).stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
     @Transactional
@@ -193,24 +161,17 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found with id: " + id));
 
-        if (productDto.getName() != null) {
-            product.setName(productDto.getName());
-        }
-        if (productDto.getDescription() != null) {
-            product.setDescription(productDto.getDescription());
-        }
-        if (productDto.getPrice() != null) {
-            product.setPrice(productDto.getPrice());
-        }
+        if (productDto.getName() != null) product.setName(productDto.getName());
+        if (productDto.getDescription() != null) product.setDescription(productDto.getDescription());
+        if (productDto.getPrice() != null) product.setPrice(productDto.getPrice());
         if (productDto.getCategoryId() != null) {
             Category category = categoryRepository.findById(productDto.getCategoryId())
                     .orElseThrow(() -> new IllegalArgumentException("Category not found with id: " + productDto.getCategoryId()));
             product.setCategory(category);
         }
         product.setFeatured(productDto.isFeatured());
-        if (productDto.getImageUrl() != null) {
-            product.setImageUrl(productDto.getImageUrl());  // ✅ add this
-        }
+        if (productDto.getImageUrl() != null) product.setImageUrl(productDto.getImageUrl());
+        if (productDto.getDiscountPercent() != null) product.setDiscountPercent(productDto.getDiscountPercent()); // ✅
 
         Product updatedProduct = productRepository.save(product);
         log.info("Product updated: {}", updatedProduct.getName());
@@ -243,14 +204,14 @@ public class ProductService {
                 .price(dto.getPrice())
                 .active(true)
                 .featured(dto.isFeatured())
-                .imageUrl(dto.getImageUrl());  // ✅ add this
+                .imageUrl(dto.getImageUrl())
+                .discountPercent(dto.getDiscountPercent() != null ? dto.getDiscountPercent() : 0); // ✅
 
         if (dto.getCategoryId() != null) {
             Category category = categoryRepository.findById(dto.getCategoryId())
                     .orElseThrow(() -> new IllegalArgumentException("Category not found with id: " + dto.getCategoryId()));
             builder.category(category);
         }
-
         return builder.build();
     }
 
@@ -263,32 +224,22 @@ public class ProductService {
                 .price(product.getPrice())
                 .active(product.isActive())
                 .featured(product.isFeatured())
-                .imageUrl(product.getImageUrl())  // ✅ add this
+                .imageUrl(product.getImageUrl())
+                .discountPercent(product.getDiscountPercent())  // ✅
                 .build();
 
         if (product.getCategory() != null) {
             dto.setCategoryId(product.getCategory().getId());
             dto.setCategoryName(product.getCategory().getName());
         }
-
         if (product.getStock() != null) {
             dto.setStockQuantity(product.getStock().getQuantityAvailable());
         }
-
         return dto;
     }
 
     private PageResponse<ProductDto> toPageResponse(Page<Product> page) {
-        List<ProductDto> content = page.getContent().stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
-
-        return PageResponse.of(
-                content,
-                page.getNumber(),
-                page.getSize(),
-                page.getTotalElements(),
-                page.getTotalPages()
-        );
+        List<ProductDto> content = page.getContent().stream().map(this::mapToDto).collect(Collectors.toList());
+        return PageResponse.of(content, page.getNumber(), page.getSize(), page.getTotalElements(), page.getTotalPages());
     }
 }
