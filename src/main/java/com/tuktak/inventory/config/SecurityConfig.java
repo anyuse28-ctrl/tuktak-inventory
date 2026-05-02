@@ -38,6 +38,7 @@ public class SecurityConfig {
                         // Public endpoints - no authentication required
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/api/chat/**").permitAll()
 
                         // ✅ Allow customers to place and view orders without login
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/orders").permitAll()
