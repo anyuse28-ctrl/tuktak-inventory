@@ -19,8 +19,8 @@ import java.util.ArrayList;
 @Service
 public class ChatService {
 
-    @Value("${gemini.api.key}")
-    private String geminiApiKey;
+    @Value("${groq.api.key}")
+    private String groqApiKey;
 
     private final ProductRepository productRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -42,57 +42,62 @@ public class ChatService {
                         .append("\n");
             }
 
-            // 2. Build conversation history
-            List<Map<String, Object>> contents = new ArrayList<>();
+            // 2. Build messages
+            List<Map<String, String>> messages = new ArrayList<>();
+
+            // System message
+            messages.add(Map.of(
+                    "role", "system",
+                    "content", "You are a helpful shopping assistant for TukTak store. " +
+                            "Help customers find products and answer questions. Be friendly and concise.\n" +
+                            "Our products:\n" + productList
+            ));
 
             // Add history
             if (chatMessage.getHistory() != null) {
                 for (ChatMessage.ChatHistory h : chatMessage.getHistory()) {
-                    contents.add(Map.of(
-                            "role", h.getRole(),
-                            "parts", List.of(Map.of("text", h.getContent()))
+                    messages.add(Map.of(
+                            "role", "user".equals(h.getRole()) ? "user" : "assistant",
+                            "content", h.getContent()
                     ));
                 }
             }
 
-            // Add system context + current message
-            String fullMessage = "You are a helpful shopping assistant for TukTak store. " +
-                    "Help customers find products and answer questions. Be friendly and concise.\n" +
-                    "Our products:\n" + productList + "\n" +
-                    "Customer question: " + chatMessage.getMessage();
-
-            contents.add(Map.of(
+            // Add current message
+            messages.add(Map.of(
                     "role", "user",
-                    "parts", List.of(Map.of("text", fullMessage))
+                    "content", chatMessage.getMessage()
             ));
 
             // 3. Build request body
-            Map<String, Object> requestBody = Map.of("contents", contents);
+            Map<String, Object> requestBody = Map.of(
+                    "model", "llama3-8b-8192",
+                    "messages", messages,
+                    "max_tokens", 1024
+            );
+
             String jsonBody = objectMapper.writeValueAsString(requestBody);
 
-            // 4. Call Gemini API directly
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiApiKey;
-
+            // 4. Call Groq API
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
+                    .uri(URI.create("https://api.groq.com/openai/v1/chat/completions"))
                     .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + groqApiKey)
                     .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                     .build();
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             String responseBody = response.body();
 
-            // 5. Parse response
+            System.out.println("GROQ RESPONSE: " + responseBody);
 
-            System.out.println("GEMINI RESPONSE: " + responseBody);
+            // 5. Parse response
             Map<?, ?> responseMap = objectMapper.readValue(responseBody, Map.class);
-            List<?> candidates = (List<?>) responseMap.get("candidates");
-            Map<?, ?> firstCandidate = (Map<?, ?>) candidates.get(0);
-            Map<?, ?> content = (Map<?, ?>) firstCandidate.get("content");
-            List<?> parts = (List<?>) content.get("parts");
-            Map<?, ?> firstPart = (Map<?, ?>) parts.get(0);
-            String reply = (String) firstPart.get("text");
+            List<?> choices = (List<?>) responseMap.get("choices");
+            Map<?, ?> firstChoice = (Map<?, ?>) choices.get(0);
+            Map<?, ?> message = (Map<?, ?>) firstChoice.get("message");
+            String reply = (String) message.get("content");
 
             return new ChatResponse(reply, true);
 
