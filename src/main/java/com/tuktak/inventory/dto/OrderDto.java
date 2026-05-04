@@ -38,6 +38,9 @@ public class OrderDto {
     private String status;
 
     private String notes;
+    private String deliveryArea;
+
+    private BigDecimal deliveryCharge;
 
     private List<OrderItemDto> orderItems;
 }

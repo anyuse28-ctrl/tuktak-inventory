@@ -28,6 +28,7 @@ public class PublicOrderRequest {
     private String shippingAddress;
 
     private String notes;
+    private String deliveryArea; // "inside_dhaka" or "outside_dhaka"
 
     @NotEmpty(message = "Order must have at least one item")
     private List<PublicOrderItemRequest> items;

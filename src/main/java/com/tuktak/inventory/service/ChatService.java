@@ -49,7 +49,11 @@ public class ChatService {
             messages.add(Map.of(
                     "role", "system",
                     "content", "You are a helpful shopping assistant for TukTak store. " +
-                            "Help customers find products and answer questions. Be friendly and concise.\n" +
+                            "Help customers find products and answer questions. Be friendly and concise.\n\n" +
+                            "DELIVERY CHARGES:\n" +
+                            "- Inside Dhaka: ৳80\n" +
+                            "- Outside Dhaka: ৳150\n\n" +
+                            "PAYMENT: Cash on delivery only.\n\n" +
                             "Our products:\n" + productList
             ));
 

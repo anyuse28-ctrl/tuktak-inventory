@@ -44,6 +44,11 @@ public class Order extends BaseEntity {
     private OrderStatus status = OrderStatus.PENDING;
 
     private String notes;
+    @Column(name = "delivery_area")
+    private String deliveryArea; // "inside_dhaka" or "outside_dhaka"
+
+    @Column(name = "delivery_charge", precision = 10, scale = 2)
+    private BigDecimal deliveryCharge = BigDecimal.ZERO;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnoreProperties({"order", "hibernateLazyInitializer", "handler"})

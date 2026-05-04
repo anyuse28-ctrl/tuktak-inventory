@@ -34,6 +34,15 @@ public class PublicOrderService {
         // Generate order number
         String orderNumber = generateOrderNumber();
 
+        // Calculate delivery charge
+        BigDecimal deliveryCharge = BigDecimal.ZERO;
+        String deliveryArea = request.getDeliveryArea();
+        if ("inside_dhaka".equals(deliveryArea)) {
+            deliveryCharge = new BigDecimal("80");
+        } else if ("outside_dhaka".equals(deliveryArea)) {
+            deliveryCharge = new BigDecimal("150");
+        }
+
         Order order = Order.builder()
                 .orderNumber(orderNumber)
                 .customerName(request.getCustomerName())
@@ -43,6 +52,8 @@ public class PublicOrderService {
                 .orderDate(LocalDateTime.now())
                 .status(Order.OrderStatus.PENDING)
                 .notes(request.getNotes())
+                .deliveryArea(deliveryArea)
+                .deliveryCharge(deliveryCharge)
                 .build();
 
         BigDecimal totalAmount = BigDecimal.ZERO;
@@ -71,7 +82,7 @@ public class PublicOrderService {
             totalAmount = totalAmount.add(item.getTotalPrice());
         }
 
-        order.setTotalAmount(totalAmount);
+        order.setTotalAmount(totalAmount.add(deliveryCharge));
         Order savedOrder = orderRepository.save(order);
 
         log.info("Public order created: {} for customer: {}", orderNumber, request.getCustomerEmail());
@@ -114,6 +125,8 @@ public class PublicOrderService {
                 .totalAmount(order.getTotalAmount())
                 .status(order.getStatus().name())
                 .notes(order.getNotes())
+                .deliveryArea(order.getDeliveryArea())
+                .deliveryCharge(order.getDeliveryCharge())
                 .orderItems(itemDtos)
                 .build();
     }
