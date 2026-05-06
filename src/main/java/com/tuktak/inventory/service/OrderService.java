@@ -27,15 +27,11 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final StockService stockService;
-
+    private final EmailService emailService; // ✅ ADDED
     private final JdbcTemplate jdbcTemplate;
 
     @Transactional
     public OrderDto createOrder(OrderDto orderDto) {
-//        if (orderRepository.existsByOrderNumber(orderDto.getOrderNumber())) {
-//            throw new IllegalArgumentException("Order number already exists: " + orderDto.getOrderNumber());
-//        }
-
         Order order = Order.builder()
                 .orderNumber(generateOrderNumber())
                 .customerName(orderDto.getCustomerName())
@@ -67,6 +63,17 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
         log.info("Order created: {} (Status: PENDING)", savedOrder.getOrderNumber());
+
+        // ✅ Send email if customer provided email
+        if (savedOrder.getCustomerEmail() != null && !savedOrder.getCustomerEmail().isEmpty()) {
+            emailService.sendOrderPlacedEmail(
+                    savedOrder.getCustomerEmail(),
+                    savedOrder.getCustomerName(),
+                    savedOrder.getOrderNumber(),
+                    savedOrder.getTotalAmount() != null ? savedOrder.getTotalAmount().doubleValue() : 0
+            );
+        }
+
         return mapToDto(savedOrder);
     }
 
@@ -122,21 +129,11 @@ public class OrderService {
             throw new IllegalArgumentException("Only PENDING orders can be updated");
         }
 
-        if (orderDto.getCustomerName() != null) {
-            order.setCustomerName(orderDto.getCustomerName());
-        }
-        if (orderDto.getCustomerEmail() != null) {
-            order.setCustomerEmail(orderDto.getCustomerEmail());
-        }
-        if (orderDto.getCustomerPhone() != null) {
-            order.setCustomerPhone(orderDto.getCustomerPhone());
-        }
-        if (orderDto.getShippingAddress() != null) {
-            order.setShippingAddress(orderDto.getShippingAddress());
-        }
-        if (orderDto.getNotes() != null) {
-            order.setNotes(orderDto.getNotes());
-        }
+        if (orderDto.getCustomerName() != null) order.setCustomerName(orderDto.getCustomerName());
+        if (orderDto.getCustomerEmail() != null) order.setCustomerEmail(orderDto.getCustomerEmail());
+        if (orderDto.getCustomerPhone() != null) order.setCustomerPhone(orderDto.getCustomerPhone());
+        if (orderDto.getShippingAddress() != null) order.setShippingAddress(orderDto.getShippingAddress());
+        if (orderDto.getNotes() != null) order.setNotes(orderDto.getNotes());
 
         Order updatedOrder = orderRepository.save(order);
         log.info("Order updated: {}", order.getOrderNumber());
@@ -155,7 +152,7 @@ public class OrderService {
         List<String> insufficientStockItems = new ArrayList<>();
         for (OrderItem item : order.getOrderItems()) {
             boolean hasStock = stockService.validateStockAvailability(
-                    item.getProduct().getId(), 
+                    item.getProduct().getId(),
                     item.getQuantity()
             );
             if (!hasStock) {
@@ -169,16 +166,25 @@ public class OrderService {
 
         for (OrderItem item : order.getOrderItems()) {
             stockService.decreaseStock(item.getProduct().getId(), item.getQuantity());
-            log.info("Stock decreased for product {} by {} units", 
+            log.info("Stock decreased for product {} by {} units",
                     item.getProduct().getName(), item.getQuantity());
         }
 
         order.setStatus(Order.OrderStatus.CONFIRMED);
         Order updatedOrder = orderRepository.save(order);
-        
-        log.info("Order {} confirmed. Stock decreased for {} items.", 
+
+        log.info("Order {} confirmed. Stock decreased for {} items.",
                 order.getOrderNumber(), order.getOrderItems().size());
-        
+
+        // ✅ Send confirmation email
+        if (updatedOrder.getCustomerEmail() != null && !updatedOrder.getCustomerEmail().isEmpty()) {
+            emailService.sendOrderConfirmedEmail(
+                    updatedOrder.getCustomerEmail(),
+                    updatedOrder.getCustomerName(),
+                    updatedOrder.getOrderNumber()
+            );
+        }
+
         return mapToDto(updatedOrder);
     }
 
@@ -200,7 +206,6 @@ public class OrderService {
             throw new IllegalArgumentException("Only PENDING orders can be confirmed. Use confirmOrder endpoint.");
         }
 
-        // ✅ If changing to CONFIRMED, decrease stock
         if (newStatus == Order.OrderStatus.CONFIRMED && currentStatus == Order.OrderStatus.PENDING) {
             List<String> insufficientStockItems = new ArrayList<>();
             for (OrderItem item : order.getOrderItems()) {
@@ -239,19 +244,18 @@ public class OrderService {
         if (order.getStatus() == Order.OrderStatus.DELIVERED) {
             throw new IllegalArgumentException("Cannot cancel a delivered order");
         }
-
         if (order.getStatus() == Order.OrderStatus.CANCELLED) {
             throw new IllegalArgumentException("Order is already cancelled");
         }
 
         boolean stockWasDecreased = order.getStatus() == Order.OrderStatus.CONFIRMED ||
-                                    order.getStatus() == Order.OrderStatus.PROCESSING ||
-                                    order.getStatus() == Order.OrderStatus.SHIPPED;
+                order.getStatus() == Order.OrderStatus.PROCESSING ||
+                order.getStatus() == Order.OrderStatus.SHIPPED;
 
         if (stockWasDecreased) {
             for (OrderItem item : order.getOrderItems()) {
                 stockService.increaseStock(item.getProduct().getId(), item.getQuantity());
-                log.info("Stock restored for product {} by {} units", 
+                log.info("Stock restored for product {} by {} units",
                         item.getProduct().getName(), item.getQuantity());
             }
             log.info("Stock restored for {} items due to order cancellation", order.getOrderItems().size());
@@ -259,9 +263,9 @@ public class OrderService {
 
         order.setStatus(Order.OrderStatus.CANCELLED);
         Order updatedOrder = orderRepository.save(order);
-        
+
         log.info("Order {} cancelled. Stock restored: {}", order.getOrderNumber(), stockWasDecreased);
-        
+
         return mapToDto(updatedOrder);
     }
 
@@ -310,6 +314,7 @@ public class OrderService {
                 .totalPrice(item.getTotalPrice())
                 .build();
     }
+
     private String generateOrderNumber() {
         Long seq = jdbcTemplate.queryForObject(
                 "SELECT nextval('order_number_seq')",
