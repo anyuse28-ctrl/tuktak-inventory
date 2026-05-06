@@ -1,32 +1,39 @@
 package com.tuktak.inventory.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
+import org.springframework.http.*;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    @Value("${sendgrid.api.key}")
+    private String brevoApiKey;
+
+    @Value("${mail.from}")
+    private String fromEmail;
+
+    private final RestTemplate restTemplate = new RestTemplate();
 
     @Async
     public void sendOrderPlacedEmail(String toEmail, String customerName, String orderNumber, double totalAmount) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setTo(toEmail);
-            helper.setSubject("Order Placed Successfully - " + orderNumber);
-            helper.setText(buildOrderPlacedHtml(customerName, orderNumber, totalAmount), true);
-            mailSender.send(message);
+            Map<String, Object> body = buildEmailBody(
+                    toEmail, customerName,
+                    "Order Placed Successfully - " + orderNumber,
+                    buildOrderPlacedHtml(customerName, orderNumber, totalAmount)
+            );
+            sendEmail(body);
             log.info("Order placed email sent to {}", toEmail);
-        } catch (MessagingException e) {
+        } catch (Exception e) {
             log.error("Failed to send order placed email: {}", e.getMessage());
         }
     }
@@ -34,16 +41,34 @@ public class EmailService {
     @Async
     public void sendOrderConfirmedEmail(String toEmail, String customerName, String orderNumber) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setTo(toEmail);
-            helper.setSubject("Order Confirmed - " + orderNumber);
-            helper.setText(buildOrderConfirmedHtml(customerName, orderNumber), true);
-            mailSender.send(message);
+            Map<String, Object> body = buildEmailBody(
+                    toEmail, customerName,
+                    "Order Confirmed - " + orderNumber,
+                    buildOrderConfirmedHtml(customerName, orderNumber)
+            );
+            sendEmail(body);
             log.info("Order confirmed email sent to {}", toEmail);
-        } catch (MessagingException e) {
+        } catch (Exception e) {
             log.error("Failed to send order confirmed email: {}", e.getMessage());
         }
+    }
+
+    private void sendEmail(Map<String, Object> body) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("api-key", brevoApiKey);
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+        restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email", request, String.class);
+    }
+
+    private Map<String, Object> buildEmailBody(String toEmail, String toName, String subject, String htmlContent) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("sender", Map.of("name", "TukTak Deal", "email", fromEmail));
+        body.put("to", List.of(Map.of("email", toEmail, "name", toName)));
+        body.put("subject", subject);
+        body.put("htmlContent", htmlContent);
+        return body;
     }
 
     private String buildOrderPlacedHtml(String name, String orderNumber, double total) {
