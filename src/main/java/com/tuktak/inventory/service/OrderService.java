@@ -274,11 +274,10 @@ public class OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found with id: " + id));
 
-        if (order.getStatus() != Order.OrderStatus.DELIVERED) {
-            throw new IllegalArgumentException("Only DELIVERED orders can be returned");
+        if (order.getStatus() != Order.OrderStatus.SHIPPED) {  // ✅ Only SHIPPED
+            throw new IllegalArgumentException("Only SHIPPED orders can be returned");
         }
 
-        // ✅ Restore stock for all items
         for (OrderItem item : order.getOrderItems()) {
             stockService.increaseStock(item.getProduct().getId(), item.getQuantity());
             log.info("Stock restored for product {} by {} units due to return",
