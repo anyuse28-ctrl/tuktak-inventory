@@ -270,6 +270,31 @@ public class OrderService {
     }
 
     @Transactional
+    public OrderDto returnOrder(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found with id: " + id));
+
+        if (order.getStatus() != Order.OrderStatus.DELIVERED) {
+            throw new IllegalArgumentException("Only DELIVERED orders can be returned");
+        }
+
+        // ✅ Restore stock for all items
+        for (OrderItem item : order.getOrderItems()) {
+            stockService.increaseStock(item.getProduct().getId(), item.getQuantity());
+            log.info("Stock restored for product {} by {} units due to return",
+                    item.getProduct().getName(), item.getQuantity());
+        }
+
+        order.setStatus(Order.OrderStatus.RETURNED);
+        Order updatedOrder = orderRepository.save(order);
+
+        log.info("Order {} returned. Stock restored for {} items.",
+                order.getOrderNumber(), order.getOrderItems().size());
+
+        return mapToDto(updatedOrder);
+    }
+
+    @Transactional
     public void deleteOrder(Long id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found with id: " + id));

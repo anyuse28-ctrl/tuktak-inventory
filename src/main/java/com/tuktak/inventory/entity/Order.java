@@ -61,7 +61,8 @@ public class Order extends BaseEntity {
         PROCESSING,
         SHIPPED,
         DELIVERED,
-        CANCELLED
+        CANCELLED,
+        RETURNED
     }
 
     public void addOrderItem(OrderItem item) {

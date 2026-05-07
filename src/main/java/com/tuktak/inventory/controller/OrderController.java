@@ -93,6 +93,11 @@ public class OrderController {
         OrderDto cancelledOrder = orderService.cancelOrder(id);
         return ResponseEntity.ok(ApiResponse.success("Order cancelled successfully", cancelledOrder));
     }
+    @PatchMapping("/{id}/return")
+    public ResponseEntity<ApiResponse<OrderDto>> returnOrder(@PathVariable Long id) {
+        OrderDto returnedOrder = orderService.returnOrder(id);
+        return ResponseEntity.ok(ApiResponse.success("Order returned successfully", returnedOrder));
+    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteOrder(@PathVariable Long id) {
