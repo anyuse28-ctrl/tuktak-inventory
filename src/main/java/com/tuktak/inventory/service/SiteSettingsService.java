@@ -25,6 +25,9 @@ public class SiteSettingsService {
     private static final String SHOP_PHONE = "shop_phone";
     private static final String SHOP_EMAIL = "shop_email";
     private static final String SHOP_ADDRESS = "shop_address";
+    private static final String PROMO_POPUP_ACTIVE = "promo_popup_active";      // <-- ADD
+    private static final String PROMO_POPUP_IMAGE_URL = "promo_popup_image_url"; // <-- ADD
+    private static final String PROMO_POPUP_TITLE = "promo_popup_title";         // <-- ADD
 
     @Transactional(readOnly = true)
     public Map<String, String> getAllSettings() {
@@ -37,6 +40,9 @@ public class SiteSettingsService {
         settings.put(SHOP_PHONE, "");
         settings.put(SHOP_EMAIL, "");
         settings.put(SHOP_ADDRESS, "");
+        settings.put(PROMO_POPUP_ACTIVE, "false");   // <-- ADD
+        settings.put(PROMO_POPUP_IMAGE_URL, "");      // <-- ADD
+        settings.put(PROMO_POPUP_TITLE, "");          // <-- ADD
 
         // Override with DB values
         siteSettingsRepository.findAll().forEach(s ->
