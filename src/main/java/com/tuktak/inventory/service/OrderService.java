@@ -27,7 +27,8 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final StockService stockService;
-    private final EmailService emailService; // ✅ ADDED
+    private final EmailService emailService;
+    private final SmsService smsService; // ✅ ADDED
     private final JdbcTemplate jdbcTemplate;
 
     @Transactional
@@ -68,6 +69,16 @@ public class OrderService {
         if (savedOrder.getCustomerEmail() != null && !savedOrder.getCustomerEmail().isEmpty()) {
             emailService.sendOrderPlacedEmail(
                     savedOrder.getCustomerEmail(),
+                    savedOrder.getCustomerName(),
+                    savedOrder.getOrderNumber(),
+                    savedOrder.getTotalAmount() != null ? savedOrder.getTotalAmount().doubleValue() : 0
+            );
+        }
+
+        // ✅ Send SMS if customer provided phone
+        if (savedOrder.getCustomerPhone() != null && !savedOrder.getCustomerPhone().isEmpty()) {
+            smsService.sendOrderPlacedSms(
+                    savedOrder.getCustomerPhone(),
                     savedOrder.getCustomerName(),
                     savedOrder.getOrderNumber(),
                     savedOrder.getTotalAmount() != null ? savedOrder.getTotalAmount().doubleValue() : 0
@@ -185,6 +196,15 @@ public class OrderService {
             );
         }
 
+        // ✅ Send confirmation SMS
+        if (updatedOrder.getCustomerPhone() != null && !updatedOrder.getCustomerPhone().isEmpty()) {
+            smsService.sendOrderConfirmedSms(
+                    updatedOrder.getCustomerPhone(),
+                    updatedOrder.getCustomerName(),
+                    updatedOrder.getOrderNumber()
+            );
+        }
+
         return mapToDto(updatedOrder);
     }
 
@@ -274,7 +294,7 @@ public class OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found with id: " + id));
 
-        if (order.getStatus() != Order.OrderStatus.SHIPPED) {  // ✅ Only SHIPPED
+        if (order.getStatus() != Order.OrderStatus.SHIPPED) {
             throw new IllegalArgumentException("Only SHIPPED orders can be returned");
         }
 
